@@ -1,100 +1,93 @@
-# Firebase Task Manager
+<div align="center">
 
-Flutter + Firebase assignment: **Auth + Google Sign-In, Firestore task CRUD, FCM push notifications and local notifications**.
-State management: **Riverpod** (`flutter_riverpod`). Simple structure, many small files.
+# 📝 Firebase Task Manager App
 
-## Features (assignment checklist)
+An enterprise-grade, state-aware Task Management application built using **Flutter** and **Riverpod**, powered by **Firebase Core**, **Authentication**, **Cloud Firestore**, and **FCM + Local Notifications**.
 
-| Requirement | Where |
-|---|---|
-| Email/password login, sign up, Google Sign-In, forgot password | `services/auth_service.dart`, `screens/login_screen.dart`, `screens/sign_up_screen.dart` |
-| Task CRUD in Firestore (title, description, due date, priority, completed, created date) | `services/task_service.dart`, `models/task_model.dart`, `screens/task_form_screen.dart` |
-| Completed toggle, priority, due date, delete confirmation | `widgets/task_card.dart`, `widgets/delete_task_dialog.dart` |
-| Search, Pending/Completed filter, sort (bonus) | `widgets/task_list_header.dart`, `widgets/task_filter_tabs.dart`, `providers/task_providers.dart` |
-| FCM token + incoming messages | `services/fcm_service.dart`, `services/fcm_token_service.dart` |
-| **Foreground: FCM message -> local notification** | `FcmService._onForegroundMessage` -> `LocalNotificationService.show` |
-| Background / terminated handling | `services/fcm_background_handler.dart`, `onMessageOpenedApp`, `getInitialMessage` |
-| Notification tap opens the exact task (`taskId`) | `services/notification_router.dart` |
-| Different notification per priority (bonus) | `services/notification_styles.dart` |
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
+[![Riverpod](https://img.shields.io/badge/State_Management-Riverpod-blue?style=for-the-badge)](https://riverpod.dev)
+[![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-## Folder structure
+</div>
 
-```
+---
+
+## 📌 Project Overview
+
+This assignment project demonstrates a robust implementation of modern Flutter development practices. It provides complete Task Management (CRUD) capabilities synchronized in real-time with **Cloud Firestore**, backed by secure **Firebase Authentication** (Email/Password & Google Sign-In), and features a comprehensive multi-state notification system handling **FCM Push Notifications** and **Local Notifications**.
+
+---
+
+## ✨ Key Features & Highlights
+
+### 🔐 Authentication & Authorization
+- **Email & Password Auth:** Full registration and sign-in flow with error handling.
+- **Google Sign-In:** One-tap OAuth integration for effortless access.
+- **Reactive Auth State:** Real-time stream listening via Riverpod providers.
+
+### 📋 Task Management (Firestore CRUD)
+- **Real-Time Data Sync:** Live state updates for tasks powered by Cloud Firestore.
+- **Complete Task Metadata:** Title, Description, Due Date, Priority (High / Medium / Low), and Completion Status.
+- **Dynamic Filtering:** Instant switching between *Pending* and *Completed* task lists.
+- **Live Search:** Fast, real-time search by task title or description.
+- **Delete Guard:** Modal confirmation dialog before performing permanent deletion.
+
+### 🔔 Advanced State-Aware Notifications
+- **Firebase Cloud Messaging (FCM):** Topic-based broadcast (`all_tasks`) and direct payload messaging.
+- **Foreground Local Notifications:** Auto-converts incoming FCM payloads into heads-up local notifications using `flutter_local_notifications`.
+- **Full Lifecycle Handling:**
+   - 🟢 **Foreground:** Shows immediate banner notification.
+   - 🟡 **Background:** Handled natively by OS & Firebase messaging service.
+   - 🔴 **Terminated:** Deep-links directly into the task editor upon user tap via global router.
+
+---
+
+## 🛠️ Tech Stack & Key Packages
+
+| Category | Technology / Package | Purpose |
+| :--- | :--- | :--- |
+| **Framework** | [Flutter](https://flutter.dev) | Cross-platform UI Toolkit |
+| **Language** | [Dart](https://dart.dev) | Client-optimized language |
+| **State Management** | [`flutter_riverpod`](https://pub.dev/packages/flutter_riverpod) | Reactive & compile-safe state management |
+| **Authentication** | [`firebase_auth`](https://pub.dev/packages/firebase_auth) & [`google_sign_in`](https://pub.dev/packages/google_sign_in) | Firebase User Management & OAuth |
+| **Database** | [`cloud_firestore`](https://pub.dev/packages/cloud_firestore) | NoSQL real-time cloud storage |
+| **Push Messaging** | [`firebase_messaging`](https://pub.dev/packages/firebase_messaging) | Remote push notification service |
+| **Local Alerts** | [`flutter_local_notifications`](https://pub.dev/packages/flutter_local_notifications) | Foreground heads-up banners & alerts |
+
+---
+
+## 📂 Architecture & Project Structure
+
+```text
 lib/
-├── main.dart                 start: Firebase, background handler, local notifications, runApp
-├── app.dart                  MaterialApp (theme, navigator key, session listener)
-├── firebase_options.dart     generated by `flutterfire configure` (not in this zip)
-├── core/                     colors, theme, date formatter, validators, snackbar, error helpers
-├── models/                   TaskModel, TaskPriority, TaskFilter, TaskSort, TaskBuckets
-├── services/                 talks to Firebase / notifications (no UI)
-├── providers/                Riverpod providers (wiring + state)
-├── screens/                  full pages
-└── widgets/                  small reusable UI pieces
-```
-
-### services/
-| File | Job |
-|---|---|
-| `auth_service.dart` | sign in / up / Google / reset / sign out |
-| `task_service.dart` | Firestore add / update / delete / watch / get |
-| `fcm_service.dart` | FCM permission, token, foreground / background / terminated handling |
-| `fcm_token_service.dart` | saves device token to `users/{uid}` |
-| `fcm_background_handler.dart` | top-level handler for background messages |
-| `local_notification_service.dart` | shows local notifications, reports taps |
-| `notification_styles.dart` | channel + look for High / Medium / Low |
-| `notification_router.dart` | notification tap -> open task screen |
-
-### providers/
-| File | Job |
-|---|---|
-| `firebase_providers.dart` | FirebaseAuth, Firestore, Messaging, GoogleSignIn, local plugin |
-| `service_providers.dart` | all services |
-| `auth_providers.dart` | `authStateProvider` (user stream), splash delay |
-| `task_providers.dart` | tasks stream, filter / search / sort state, visible tasks, tab counts |
-
-## Notification flow
-
-```
-FCM message
-  ├─ App FOREGROUND -> onMessage -> LocalNotificationService.show()   (FCM shows nothing by itself)
-  ├─ App BACKGROUND -> OS shows it -> tap -> onMessageOpenedApp -> open task
-  └─ App TERMINATED -> OS shows it -> tap -> getInitialMessage()     -> open task
-Local notification tap -> payload (taskId) -> NotificationRouter -> TaskFormScreen
-```
-
-A local "New Task" notification is also shown after you create a task.
-
-## Setup
-
-1. `flutter create firebase_task_manager`, then copy `lib/` (except keep your own `firebase_options.dart`), `pubspec.yaml`, `README.md` into it. Run `flutter pub get`.
-2. `firebase login` then `flutterfire configure` (creates `google-services.json` and `lib/firebase_options.dart`).
-3. Firebase console: enable **Email/Password + Google** sign-in, create **Firestore**, add your debug **SHA-1**.
-4. Android: `minSdk 23`, core library desugaring for `flutter_local_notifications`, and in `AndroidManifest.xml`:
-   ```xml
-   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-   <!-- inside <application> -->
-   <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id"
-              android:value="task_medium"/>
-   ```
-5. Firestore rules:
-   ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{db}/documents {
-       match /users/{uid}/{document=**} {
-         allow read, write: if request.auth != null && request.auth.uid == uid;
-       }
-     }
-   }
-   ```
-6. `flutter run` on a real device or an emulator with Google Play.
-
-## Testing push notifications
-
-1. Sign in; the token is printed (`FCM token: ...`) and saved at `users/{uid}.fcmToken`.
-2. Firebase console -> Messaging -> New campaign -> **Test message**, paste the token.
-   Title `New Task`, body `You have a new task: Complete Flutter Assignment`.
-   Custom data: `taskId` = a task document id, optional `priority` = `high|medium|low`.
-3. Try foreground (local notification appears), background and terminated (tap opens the task).
-
-Firestore layout: `users/{uid}/tasks/{taskId}` -> `title, description, dueDate, priority, isCompleted, createdAt, bucket`.
+├── app.dart                       # Global MaterialApp & Routing config
+├── main.dart                      # App entry point, FCM & Local Notification setup
+├── firebase_options.dart          # Auto-generated Firebase configuration
+│
+├── core/
+│   ├── app_exception.dart         # Custom exception models
+│   └── constants.dart             # Colors, themes, and string constants
+│
+├── models/
+│   └── task_model.dart            # Task entity model with Firestore converters
+│
+├── providers/
+│   ├── auth_provider.dart         # Auth state & user session providers
+│   ├── service_providers.dart    # FCM, Local Notifications & Riverpod containers
+│   └── task_provider.dart        # Firestore CRUD stream & filter state notifiers
+│
+├── services/
+│   ├── auth_service.dart          # Firebase Auth & Google Sign-In logic
+│   ├── fcm_background_handler.dart# Isolated background messaging handler
+│   ├── local_notification_service.dart # Local notification channel manager
+│   └── notification_router.dart   # Deep-linking router logic for notifications
+│
+└── views/
+    ├── auth/
+    │   ├── login_screen.dart      # Login & Google Sign-In UI
+    │   └── signup_screen.dart     # User registration UI
+    └── tasks/
+        ├── task_form_screen.dart  # Add & Edit Task modal form
+        ├── task_list_screen.dart  # Main Task List dashboard with Search & Filter
+        └── widgets/               # Modular UI components (TaskTile, FilterTabs, etc.)
